@@ -166,7 +166,7 @@ $questionsByGroups = [
     </nav>
 
     <div class="row">
-        <div class="col-xs-9">
+        <div class="col-xs-8 col-xs-offset-2">
             <div class="questions-container">
                 <?php
                 /** @var Question $question */
