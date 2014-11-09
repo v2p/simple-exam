@@ -122,7 +122,7 @@ foreach ($selectedQuestionsIndexes as $index) {
 
     <style>
         body {
-            padding-top: 70px;
+            padding-top: 10px;
         }
 
         .answers {
@@ -135,7 +135,7 @@ foreach ($selectedQuestionsIndexes as $index) {
             font-weight: 500;
         }
 
-        .result-panel {
+        .result-panel, .questions-container {
             margin-top: 20px;
         }
     </style>
@@ -212,6 +212,10 @@ foreach ($selectedQuestionsIndexes as $index) {
                 self.selectedQuestion(self.questions[index]);
             };
 
+            self.goToQuestion = function(question) {
+                self.selectedQuestion(question);
+            };
+
             self.toggleShowResult = function() {
                 self.resultShowed(!self.resultShowed());
             };
@@ -226,6 +230,26 @@ foreach ($selectedQuestionsIndexes as $index) {
                 } else {
                     return 'panel-danger';
                 }
+            };
+
+            self.toolbarClass = function(question) {
+                var result = [];
+
+                if (self.selectedQuestion() == question) {
+                    result.push('active');
+                }
+
+                if (self.resultShowed()) {
+                    if (question.isCorrect()) {
+                        result.push('btn-success');
+                    } else {
+                        result.push('btn-danger');
+                    }
+                } else {
+                    result.push('btn-default');
+                }
+
+                return result.join(' ');
             };
 
             self.correctAnswers = ko.computed(function() {
@@ -272,6 +296,15 @@ foreach ($selectedQuestionsIndexes as $index) {
 </head>
 <body data-spy="scroll" data-target=".questions-list">
 <div class="container">
+    <div class="row">
+        <div class="col-xs-11 col-xs-offset-1" >
+            <div class="btn-toolbar" role="toolbar">
+                <div class="btn-group btn-group-xs" data-bind="foreach: questions">
+                    <button type="button" class="btn btn-default" data-bind="text: $index() + 1, css: $root.toolbarClass($data), click: $root.goToQuestion"></button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-xs-8 col-xs-offset-2">
             <div class="questions-container" data-bind="foreach: questions">
