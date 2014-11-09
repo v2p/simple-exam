@@ -1,20 +1,77 @@
 <?php
 
+function showFile() {
+    $file = array_values(file(__DIR__ . '/res/answers.csv'));
+
+    $result = [];
+
+    while (list($lineNumber, $dirtyLine) = each($file)) {
+        $line = trim($dirtyLine);
+
+        if ($line == '') {
+            continue;
+        }
+
+        if (is_numeric($line)) {
+            $valueInLine = (int)$line;
+
+            if ($valueInLine != 1200) {
+                $questionIndex = $valueInLine;
+
+                $answerItem = [];
+                while (list($answerLineNumber, $answerLine) = each($file)) {
+                    $answer = trim($answerLine);
+                    if ($answer == '') {
+                        break;
+                    }
+
+                    if (strrpos($answer, '+') === strlen($answer) - 1) {
+                        $answer = trim($answer, '+');
+                        $isCorrect = true;
+                    } else {
+                        $isCorrect = false;
+                    }
+
+                    $answerItem[] = [
+                        'name' => $answer,
+                        'isCorrect' => $isCorrect
+                    ];
+                }
+
+                $result[$questionIndex] = $answerItem;
+            }
+        }
+    }
+
+    return var_export($result);
+}
+
 class Answer implements JsonSerializable
 {
-    private $id;
-
     private $name;
 
     private $isCorrect;
 
+    public function __construct($name, $isCorrect)
+    {
+        $this->name = $name;
+        $this->isCorrect = $isCorrect;
+    }
+
     public function jsonSerialize()
     {
         return [
-            'id' => $this->id,
-            'name' => $this->name,
+            'name' => $this->getName(),
             'isCorrect' => $this->isCorrect,
         ];
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getName()
+    {
+        return $this->name;
     }
 }
 
@@ -22,11 +79,19 @@ class Question implements JsonSerializable
 {
     private $id;
 
-    private $answers;
+    /**
+     * @var Answer[]
+     */
+    private $answers = [];
 
-    public function __construct($index)
+    public function __construct($id)
     {
-        $this->id = $index;
+        $this->id = $id;
+    }
+
+    public function addAnswer(Answer $answer)
+    {
+        $this->answers[] = $answer;
     }
 
     /**
@@ -58,18 +123,37 @@ class Question implements JsonSerializable
     public function jsonSerialize()
     {
         return [
-            'id' => $this->id,
-            'answers' => $this->answers,
+            'id' => $this->getId(),
+            'answers' => $this->getAnswers(),
         ];
     }
+
+    /**
+     * @return Answer[]
+     */
+    public function getAnswers()
+    {
+        return $this->answers;
+    }
 }
+
+$answers = include_once('answers.php');
 
 $allQuestions = range(1, 504);
 $selectedQuestionsIndexes = array_rand($allQuestions, 40);
 
 $selectedQuestions = [];
 foreach ($selectedQuestionsIndexes as $index) {
-    $selectedQuestions[] = new Question($allQuestions[$index]);
+    $questionIndex = $allQuestions[$index];
+    $question = new Question($questionIndex);
+
+    foreach ($answers[$questionIndex] as $answerData) {
+        $question->addAnswer(
+            new Answer($answerData['name'], $answerData['isCorrect'])
+        );
+    }
+
+    $selectedQuestions[] = $question;
 }
 
 $questionsByGroups = [
@@ -92,6 +176,12 @@ $questionsByGroups = [
     <style>
         body {
             padding-top: 70px;
+        }
+
+        .answers {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
         }
     </style>
 
@@ -161,6 +251,13 @@ $questionsByGroups = [
                     </li>
                     <?php endforeach; ?>
                 </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#result">
+                            Перейти к результатам
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -174,10 +271,28 @@ $questionsByGroups = [
                 <div class="panel panel-default" id="<?= $question->getAnchor() ?>">
                     <div class="panel-heading"><?= $question->getName() ?></div>
                     <div class="panel-body">
-                        <img src="<?= $question->getImage() ?>" alt="Загрузка..."/>
+                        <div>
+                            <img src="<?= $question->getImage() ?>" alt="Загрузка..."/>
+                        </div>
+                        <div class="answers">
+                            <?php foreach($question->getAnswers() as $answer):
+                            /** @var Answer $answer */?>
+                            <div>
+                                <label>
+                                    <input type="radio" /> <?= $answer->getName(); ?>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                 </div>
                 <?php } ?>
+            </div>
+
+            <div class="panel panel-primary" id="result">
+                <div class="panel-heading">Результаты</div>
+                <div class="panel-body">
+                </div>
             </div>
         </div>
     </div>
