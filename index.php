@@ -1,51 +1,5 @@
 <?php
 
-function showFile() {
-    $file = array_values(file(__DIR__ . '/res/answers.csv'));
-
-    $result = [];
-
-    while (list($lineNumber, $dirtyLine) = each($file)) {
-        $line = trim($dirtyLine);
-
-        if ($line == '') {
-            continue;
-        }
-
-        if (is_numeric($line)) {
-            $valueInLine = (int)$line;
-
-            if ($valueInLine != 1200) {
-                $questionIndex = $valueInLine;
-
-                $answerItem = [];
-                while (list($answerLineNumber, $answerLine) = each($file)) {
-                    $answer = trim($answerLine);
-                    if ($answer == '') {
-                        break;
-                    }
-
-                    if (strrpos($answer, '+') === strlen($answer) - 1) {
-                        $answer = trim($answer, '+');
-                        $isCorrect = true;
-                    } else {
-                        $isCorrect = false;
-                    }
-
-                    $answerItem[] = [
-                        'name' => $answer,
-                        'isCorrect' => $isCorrect
-                    ];
-                }
-
-                $result[$questionIndex] = $answerItem;
-            }
-        }
-    }
-
-    return var_export($result);
-}
-
 class Answer implements JsonSerializable
 {
     private $name;
@@ -77,7 +31,10 @@ class Answer implements JsonSerializable
 
 class Question implements JsonSerializable
 {
+    private static $questionsCount = 0;
+
     private $id;
+    private $sequentalIndex;
 
     /**
      * @var Answer[]
@@ -87,19 +44,12 @@ class Question implements JsonSerializable
     public function __construct($id)
     {
         $this->id = $id;
+        $this->sequentalIndex = ++self::$questionsCount;
     }
 
     public function addAnswer(Answer $answer)
     {
         $this->answers[] = $answer;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getAnchor()
-    {
-        return 'q' . $this->id;
     }
 
     /**
@@ -112,7 +62,7 @@ class Question implements JsonSerializable
 
     public function getName()
     {
-        return 'Вопрос #' . $this->id;
+        return 'Вопрос #' . $this->sequentalIndex;
     }
 
     public function getId()
@@ -124,6 +74,9 @@ class Question implements JsonSerializable
     {
         return [
             'id' => $this->getId(),
+            'image' => $this->getImage(),
+            'name' => $this->getName(),
+
             'answers' => $this->getAnswers(),
         ];
     }
@@ -156,12 +109,6 @@ foreach ($selectedQuestionsIndexes as $index) {
     $selectedQuestions[] = $question;
 }
 
-$questionsByGroups = [
-    array_slice($selectedQuestions, 0, 13),
-    array_slice($selectedQuestions, 13, 13),
-    array_slice($selectedQuestions, 26, 14),
-];
-
 ?>
 
 <!DOCTYPE html>
@@ -183,6 +130,10 @@ $questionsByGroups = [
             padding-top: 10px;
             border-top: 1px solid #ddd;
         }
+
+        .answers label {
+            font-weight: 500;
+        }
     </style>
 
     <script src="res/js/jquery-1.11.1.min.js"></script>
@@ -194,7 +145,6 @@ $questionsByGroups = [
             var self = this,
                 data = arg || {};
 
-            self.id = data.id;
             self.name = data.name;
             self.isCorrect = data.isCorrect || false;
         }
@@ -204,6 +154,15 @@ $questionsByGroups = [
                 data = arg || {};
 
             self.id = data.id;
+            self.name = data.name;
+            self.image = data.image;
+
+            self.answers = ko.observableArray();
+
+            $.each(data.answers, function(key, answerData) {
+                self.answers.push(new Answer(answerData));
+            });
+
             self.selectedAnswer = ko.observable(null);
 
             self.isCorrect = ko.computed(function() {
@@ -215,84 +174,114 @@ $questionsByGroups = [
 
                 return answer.isCorrect;
             });
+        }
 
-            self.selectAnswer = function(value) {
-                self.selectedAnswer(value);
+        function ViewModel(arg) {
+            var self = this,
+                data = arg || {};
+
+            self.questions = data.questions || [];
+            self.selectedQuestion = ko.observable(self.questions[0]);
+            self.resultShowed = ko.observable(false);
+
+            self.previousQuestion = function() {
+                var index = self.questions.indexOf(self.selectedQuestion());
+
+                if (index == 0) {
+                    index = self.questions.length - 1;
+                } else {
+                    index--;
+                }
+
+                self.selectedQuestion(self.questions[index]);
+            };
+
+            self.nextQuestion = function() {
+                var index = self.questions.indexOf(self.selectedQuestion());
+
+                if (index == self.questions.length - 1) {
+                    index = 0;
+                } else {
+                    index++;
+                }
+
+                self.selectedQuestion(self.questions[index]);
+            };
+
+            self.toggleShowResult = function() {
+                self.resultShowed(!self.resultShowed());
+            };
+
+            self.panelClass = function(question) {
+                if (!self.resultShowed()) {
+                    return 'panel-default';
+                }
+
+                if (question.isCorrect()) {
+                    return 'panel-success';
+                } else {
+                    return 'panel-danger';
+                }
             };
         }
 
-        jQuery(document).ready(function() {
-            console.log(123);
+        var exports = <?= json_encode($selectedQuestions); ?>
+
+        $(document).ready(function() {
+
+            var questions = [];
+            $.each(exports, function(key, questionData) {
+                questions.push(new Question(questionData));
+            });
+
+            var viewModel = new ViewModel({questions: questions});
+            ko.applyBindings(viewModel);
+
+            $(document).keydown(function(e){
+                if (e.keyCode == 37) { // left
+                    viewModel.previousQuestion();
+                    return false;
+                }
+
+                if (e.keyCode == 39) { // right
+                    viewModel.nextQuestion();
+                    return false;
+                }
+            });
         });
     </script>
 </head>
 <body data-spy="scroll" data-target=".questions-list">
 <div class="container">
-    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
-        <div class="container-fluid">
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav">
-                    <?php foreach($questionsByGroups as $group): ?>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                            Вопросы <?= $group[0]->getId(); ?> - <?= $group[count($group) - 1]->getId(); ?>
-                            <span class="caret"></span>
-                        </a>
-                        <ul class="dropdown-menu" role="menu">
-                            <?php foreach($group as $question):
-                                /** @var Question $question */?>
-                            <li>
-                                <a href="#<?= $question->getAnchor() ?>">
-                                    <?= $question->getName() ?>
-                                </a>
-                            </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    <li class="dropdown">
-                        <a href="#result">
-                            Перейти к результатам
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="row">
         <div class="col-xs-8 col-xs-offset-2">
-            <div class="questions-container">
-                <?php
-                /** @var Question $question */
-                foreach ($selectedQuestions as $question) { ?>
-                <div class="panel panel-default" id="<?= $question->getAnchor() ?>">
-                    <div class="panel-heading"><?= $question->getName() ?></div>
+            <div class="questions-container" data-bind="foreach: questions">
+                <div class="panel" data-bind="attr: { id: $data.anchor }, css: $root.panelClass($data), visible: $root.selectedQuestion() == $data">
+                    <div class="panel-heading"><span data-bind="html: $data.name"></span></div>
                     <div class="panel-body">
                         <div>
-                            <img src="<?= $question->getImage() ?>" alt="Загрузка..."/>
+                            <img src="" data-bind="attr: { src: $data.image }" alt="Загрузка..."/>
                         </div>
-                        <div class="answers">
-                            <?php foreach($question->getAnswers() as $answer):
-                            /** @var Answer $answer */?>
+                        <div class="answers" data-bind="foreach: $data.answers">
                             <div>
                                 <label>
-                                    <input type="radio" /> <?= $answer->getName(); ?>
+                                    <input type="radio" data-bind="checkedValue: $data, checked: $parent.selectedAnswer" />
+                                    <span data-bind="html: $data.name"></span>
                                 </label>
                             </div>
-                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>
-                <?php } ?>
             </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xs-8 col-xs-offset-2">
+            <button data-bind="click: previousQuestion" type="button" class="btn btn-default">Предыдущий вопрос</button>
+            <button data-bind="click: nextQuestion" type="button" class="btn btn-default">Следующий вопрос</button>
 
-            <div class="panel panel-primary" id="result">
-                <div class="panel-heading">Результаты</div>
-                <div class="panel-body">
-                </div>
+            <div class="pull-right">
+                <button data-bind="click: toggleShowResult, css: { active: resultShowed }" type="button" class="btn btn-default">Показать результаты</button>
             </div>
         </div>
     </div>
