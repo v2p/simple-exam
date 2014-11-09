@@ -134,6 +134,10 @@ foreach ($selectedQuestionsIndexes as $index) {
         .answers label {
             font-weight: 500;
         }
+
+        .result-panel {
+            margin-top: 20px;
+        }
     </style>
 
     <script src="res/js/jquery-1.11.1.min.js"></script>
@@ -223,6 +227,21 @@ foreach ($selectedQuestionsIndexes as $index) {
                     return 'panel-danger';
                 }
             };
+
+            self.correctAnswers = ko.computed(function() {
+                var correctCount = 0;
+                $.each(self.questions, function(index, question) {
+                    if (question.isCorrect()) {
+                        correctCount++;
+                    }
+                });
+
+                return correctCount;
+            });
+
+            self.incorrectAnswers = ko.computed(function() {
+                return self.questions.length - self.correctAnswers();
+            });
         }
 
         var exports = <?= json_encode($selectedQuestions); ?>
@@ -282,6 +301,23 @@ foreach ($selectedQuestionsIndexes as $index) {
 
             <div class="pull-right">
                 <button data-bind="click: toggleShowResult, css: { active: resultShowed }" type="button" class="btn btn-default">Показать результаты</button>
+            </div>
+        </div>
+    </div>
+    <div class="row" data-bind="visible: resultShowed">
+        <div class="col-xs-8 col-xs-offset-2">
+            <div class="panel panel-info result-panel">
+                <div class="panel-heading">Результаты</div>
+                <div class="panel-body">
+                    <div>
+                        Правильно:
+                        <span data-bind="text: correctAnswers"></span>
+                    </div>
+                    <div>
+                        Неправильно:
+                        <span data-bind="text: incorrectAnswers"></span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
