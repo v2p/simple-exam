@@ -62,7 +62,7 @@ class Question implements JsonSerializable
 
     public function getName()
     {
-        return 'Вопрос #' . $this->sequentalIndex;
+        return 'Вопрос (Question) #' . $this->sequentalIndex;
     }
 
     public function getId()
@@ -115,7 +115,7 @@ foreach ($selectedQuestionsIndexes as $index) {
 <html>
 <head lang="ru">
     <meta charset="UTF-8">
-    <title>Вопросы к экзамену</title>
+    <title>Вопросы к экзамену (Exam questions)</title>
 
     <link rel="stylesheet" href="res/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="res/css/bootstrap-theme.min.css"/>
@@ -312,7 +312,7 @@ foreach ($selectedQuestionsIndexes as $index) {
                     <div class="panel-heading"><span data-bind="html: $data.name"></span></div>
                     <div class="panel-body">
                         <div>
-                            <img src="" data-bind="attr: { src: $data.image }" alt="Загрузка..."/>
+                            <img src="" data-bind="attr: { src: $data.image }" alt="Загрузка... (Loading...)"/>
                         </div>
                         <div class="answers" data-bind="foreach: $data.answers">
                             <div>
@@ -329,25 +329,25 @@ foreach ($selectedQuestionsIndexes as $index) {
     </div>
     <div class="row">
         <div class="col-xs-8 col-xs-offset-2">
-            <button data-bind="click: previousQuestion" type="button" class="btn btn-default">Предыдущий вопрос</button>
-            <button data-bind="click: nextQuestion" type="button" class="btn btn-default">Следующий вопрос</button>
+            <button data-bind="click: previousQuestion" type="button" class="btn btn-default">Предыдущий вопрос (Previous)</button>
+            <button data-bind="click: nextQuestion" type="button" class="btn btn-default">Следующий вопрос (Next)</button>
 
             <div class="pull-right">
-                <button data-bind="click: toggleShowResult, css: { active: resultShowed }" type="button" class="btn btn-default">Показать результаты</button>
+                <button data-bind="click: toggleShowResult, css: { active: resultShowed }" type="button" class="btn btn-default">Показать результаты (Show results)</button>
             </div>
         </div>
     </div>
     <div class="row" data-bind="visible: resultShowed">
         <div class="col-xs-8 col-xs-offset-2">
             <div class="panel panel-info result-panel">
-                <div class="panel-heading">Результаты</div>
+                <div class="panel-heading">Результаты (Results)</div>
                 <div class="panel-body">
                     <div>
-                        Правильно:
+                        Правильно (Correct):
                         <span data-bind="text: correctAnswers"></span>
                     </div>
                     <div>
-                        Неправильно:
+                        Неправильно (Incorrect):
                         <span data-bind="text: incorrectAnswers"></span>
                     </div>
                 </div>
