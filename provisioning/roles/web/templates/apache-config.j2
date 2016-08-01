@@ -1,0 +1,15 @@
+<VirtualHost *:80>
+    ServerName {{ site_name }}
+
+    DocumentRoot /vagrant_data
+
+    <Directory /vagrant_data>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/{{ site_name }}.log
+
+    # Possible values include: debug, info, notice, warn, error, crit, alert, emerg.
+    LogLevel warn
+</VirtualHost>

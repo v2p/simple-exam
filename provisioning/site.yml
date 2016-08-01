@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  roles:
+    - common
+    - web
+  vars:
+    site_name: "exam-v2p"
